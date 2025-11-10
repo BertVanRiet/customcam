@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Camera Sticker Maker</title>
+  <script src="https://cdn.jsdelivr.net/npm/konva@9.3.3/konva.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+    }
+    #container {
+      border: 2px solid #ccc;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #fff;
+      margin-top: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    button {
+      margin: 5px;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #2563eb;
+      color: white;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover {
+      background-color: #1e4ed8;
+    }
+    input[type=file] {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎨 Ontwerp je Camera Sticker</h1>
+  <input type="file" id="upload" accept="image/*" />
+
+  <div id="container"></div>
+
+  <div id="controls" style="margin-top:20px; display:none;">
+    <button onclick="zoom(1.1)">Zoom +</button>
+    <button onclick="zoom(0.9)">Zoom −</button>
+    <button onclick="rotate(10)">↻</button>
+    <button onclick="rotate(-10)">↺</button>
+    <button onclick="exportDesign()">Download</button>
+  </div>
+
+  <script>
+    let stage, layer, userImg, maskImg;
+    let scale = 1, rotation = 0;
+
+    const width = 600, height = 400;
+
+    stage = new Konva.Stage({
+      container: 'container',
+      width: width,
+      height: height,
+    });
+
+    layer = new Konva.Layer();
+    stage.add(layer);
+
+    const uploadInput = document.getElementById('upload');
+    uploadInput.addEventListener('change', handleUpload);
+
+    async function handleUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.src = url;
+      img.onload = () => {
+        userImg = new Konva.Image({
+          image: img,
+          x: width / 2 - img.width / 4,
+          y: height / 2 - img.height / 4,
+          width: img.width / 2,
+          height: img.height / 2,
+          draggable: true,
+        });
+        layer.add(userImg);
+        loadMask();
+        document.getElementById('controls').style.display = 'block';
+      };
+    }
+
+    function loadMask() {
+      const mask = new Image();
+      mask.src = 'sticker-mask.svg';
+      mask.onload = () => {
+        maskImg = new Konva.Image({
+          image: mask,
+          width: width,
+          height: height,
+          globalCompositeOperation: 'destination-in',
+          listening: false,
+        });
+        layer.add(maskImg);
+        layer.draw();
+      };
+    }
+
+    function zoom(factor) {
+      if (!userImg) return;
+      scale *= factor;
+      userImg.scale({ x: scale, y: scale });
+      layer.batchDraw();
+    }
+
+    function rotate(deg) {
+      if (!userImg) return;
+      rotation += deg;
+      userImg.rotation(rotation);
+      layer.batchDraw();
+    }
+
+    function exportDesign() {
+      const dataURL = stage.toDataURL({ pixelRatio: 3 });
+      const a = document.createElement('a');
+      a.href = dataURL;
+      a.download = 'sticker-design.png';
+      a.click();
+
+      // Als je dit automatisch naar je mailserver wilt sturen:
+      // fetch("https://jouw-server/api/send", { method: "POST", body: JSON.stringify({ image: dataURL }) })
+    }
+  </script>
+
+</body>
+</html>
